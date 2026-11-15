@@ -2,18 +2,22 @@ package com.sprintmenu;
 
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import org.lwjgl.glfw.GLFW;
 
+import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 public class SprintMenuScreen extends Screen {
-    private static final int PANEL_W = 340;
+    private static final int PANEL_W = 440;
     private static final int PANEL_H = 250;
     private static final int PAD = 16;
     private static final int HEADER_H = 34;
@@ -41,7 +45,12 @@ public class SprintMenuScreen extends Screen {
         }
     }
 
-    private record Toggle(String name, BooleanSupplier get, Consumer<Boolean> set) {}
+    // settings == null значит, что у функции нет настроек (ПКМ ничего не делает)
+    private record Toggle(String name, BooleanSupplier get, Consumer<Boolean> set, Supplier<Screen> settings) {
+        Toggle(String name, BooleanSupplier get, Consumer<Boolean> set) {
+            this(name, get, set, null);
+        }
+    }
 
     // Чтобы добавить функцию, допиши new Toggle(...) в нужную вкладку
     private static final Map<Tab, List<Toggle>> MODULES = new EnumMap<>(Tab.class);
@@ -49,14 +58,19 @@ public class SprintMenuScreen extends Screen {
     static {
         MODULES.put(Tab.COMBAT, List.of());
         MODULES.put(Tab.PLAYER, List.of(
-                new Toggle("Sprint", SprintModule::isEnabled, SprintModule::setEnabled)
+                new Toggle("Sprint", SprintModule::isEnabled, SprintModule::setEnabled),
+                new Toggle("InvMove", InvMoveModule::isEnabled, InvMoveModule::setEnabled)
         ));
-        MODULES.put(Tab.VISUALS, List.of());
+        MODULES.put(Tab.VISUALS, List.of(
+                new Toggle("Bunnies", BunnyModule::isEnabled, BunnyModule::setEnabled, BunnySettingsScreen::new)
+        ));
     }
 
     private static Tab selected = Tab.PLAYER;
 
-    private int panelX, panelY, tabW, tabY;
+    private int panelX, panelY, panelW, tabW, tabY;
+    private final List<ButtonWidget> toggleButtons = new ArrayList<>();
+    private boolean rightWasDown = false;
 
     public SprintMenuScreen() {
         super(Text.literal("Bunny DLC"));
@@ -64,13 +78,17 @@ public class SprintMenuScreen extends Screen {
 
     @Override
     protected void init() {
-        panelX = this.width / 2 - PANEL_W / 2;
+        panelW = Math.min(PANEL_W, this.width - 20);
+        panelX = this.width / 2 - panelW / 2;
         panelY = this.height / 2 - PANEL_H / 2;
 
-        int inner = PANEL_W - PAD * 2;
+        int inner = panelW - PAD * 2;
         Tab[] tabs = Tab.values();
         tabW = (inner - TAB_GAP * (tabs.length - 1)) / tabs.length;
         tabY = panelY + HEADER_H + 10;
+
+        toggleButtons.clear();
+        rightWasDown = isRightDown();
 
         // Вкладки
         for (int i = 0; i < tabs.length; i++) {
@@ -91,15 +109,37 @@ public class SprintMenuScreen extends Screen {
             Toggle t = list.get(i);
             int x = panelX + PAD + (i % 2) * (colW + GAP);
             int y = startY + (i / 2) * (BTN_H + GAP);
-            addDrawableChild(ButtonWidget.builder(label(t), button -> {
+            ButtonWidget btn = ButtonWidget.builder(label(t), button -> {
                 t.set().accept(!t.get().getAsBoolean());
                 button.setMessage(label(t));
-            }).dimensions(x, y, colW, BTN_H).build());
+            }).dimensions(x, y, colW, BTN_H).build();
+            if (t.settings() != null) {
+                btn.setTooltip(Tooltip.of(Text.literal("ПКМ - настройки")));
+            }
+            addDrawableChild(btn);
+            toggleButtons.add(btn);
         }
 
         // Закрыть
         addDrawableChild(ButtonWidget.builder(Text.literal("Закрыть"), button -> this.close())
                 .dimensions(panelX + PAD, panelY + PANEL_H - 54, inner, BTN_H).build());
+    }
+
+    private boolean isRightDown() {
+        if (this.client == null) return false;
+        long window = this.client.getWindow().getHandle();
+        return GLFW.glfwGetMouseButton(window, GLFW.GLFW_MOUSE_BUTTON_RIGHT) == GLFW.GLFW_PRESS;
+    }
+
+    private void handleRightClick(int mouseX, int mouseY) {
+        List<Toggle> list = MODULES.get(selected);
+        for (int i = 0; i < toggleButtons.size() && i < list.size(); i++) {
+            Toggle t = list.get(i);
+            if (t.settings() != null && toggleButtons.get(i).isMouseOver(mouseX, mouseY)) {
+                this.client.setScreen(t.settings().get());
+                return;
+            }
+        }
     }
 
     private Text tabLabel(Tab tab) {
@@ -119,7 +159,7 @@ public class SprintMenuScreen extends Screen {
     public void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) {
         super.renderBackground(context, mouseX, mouseY, delta);
 
-        int x1 = panelX, y1 = panelY, x2 = panelX + PANEL_W, y2 = panelY + PANEL_H;
+        int x1 = panelX, y1 = panelY, x2 = panelX + panelW, y2 = panelY + PANEL_H;
         int cx = this.width / 2;
 
         // Заячьи ушки
@@ -151,6 +191,13 @@ public class SprintMenuScreen extends Screen {
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         super.render(context, mouseX, mouseY, delta);
 
+        // Правая кнопка мыши: открыть настройки функции (если они есть)
+        boolean down = isRightDown();
+        if (down && !rightWasDown) {
+            handleRightClick(mouseX, mouseY);
+        }
+        rightWasDown = down;
+
         int cx = this.width / 2;
 
         context.drawCenteredTextWithShadow(this.textRenderer,
@@ -164,7 +211,7 @@ public class SprintMenuScreen extends Screen {
         }
 
         context.drawCenteredTextWithShadow(this.textRenderer,
-                Text.literal("Right Shift - открыть / закрыть"),
+                Text.literal("Right Shift - меню   |   ПКМ - настройки"),
                 cx, panelY + PANEL_H - 17, GRAY);
     }
 
@@ -172,4 +219,4 @@ public class SprintMenuScreen extends Screen {
     public boolean shouldPause() {
         return false;
     }
-                     }
+                       }
