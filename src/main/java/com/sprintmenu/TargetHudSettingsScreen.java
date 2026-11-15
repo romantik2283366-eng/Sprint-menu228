@@ -73,7 +73,8 @@ public final class TargetHudSettingsScreen extends Screen {
         context.fill(x - 2, y - 2, x + W + 2, y + H + 2, 0xFFF4C7D8);
         context.fill(x, y, x + W, y + H, BG);
         context.fill(x, y, x + W, y + 4, 0xFF79E58B);
-        context.fill(x + 10, y + 10, x + W - 10, y + H - 10, 0x202FFFFFFF);
+        // Valid 32-bit ARGB literal: subtle translucent inner highlight.
+        context.fill(x + 10, y + 10, x + W - 10, y + H - 10, 0x20FFFFFF);
     }
 
     @Override
