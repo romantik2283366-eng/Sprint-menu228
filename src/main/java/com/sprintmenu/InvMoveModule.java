@@ -2,7 +2,7 @@ package com.sprintmenu;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
-import net.minecraft.client.util.InputUtil;
+import org.lwjgl.glfw.GLFW;
 
 /** Keeps keyboard movement active while a screen (for example, inventory) is open. */
 public final class InvMoveModule {
@@ -42,8 +42,12 @@ public final class InvMoveModule {
             return;
         }
 
-        InputUtil.Key key = binding.getBoundKey();
-        int code = key.getCode();
-        binding.setPressed(code >= 0 && InputUtil.isKeyPressed(window, code));
+        int code = binding.getDefaultKey().getCode();
+        if (code < 0) {
+            binding.setPressed(false);
+            return;
+        }
+
+        binding.setPressed(GLFW.glfwGetKey(window, code) == GLFW.GLFW_PRESS);
     }
 }
