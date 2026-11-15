@@ -6,18 +6,7 @@ import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import org.lwjgl.glfw.GLFW;
-import org.lwjgl.system.MemoryStack;
 
-import java.nio.DoubleBuffer;
-import java.util.ArrayList;
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Map;
-import java.util.function.BooleanSupplier;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
-
-/** Custom-drawn Bunny DLC menu; controls are painted directly instead of vanilla ButtonWidgets. */
 public final class SprintMenuScreen extends Screen {
     private static final int PANEL_H = 286;
     private static final int PAD = 18;
@@ -33,39 +22,53 @@ public final class SprintMenuScreen extends Screen {
     private static final int BG = 0xF51C2029;
 
     private enum Tab {
-        COMBAT("COMBAT"), PLAYER("PLAYER"), VISUALS("VISUALS");
+        COMBAT("COMBAT"),
+        PLAYER("PLAYER"),
+        VISUALS("VISUALS");
+
         final String title;
-        Tab(String title) { this.title = title; }
+
+        Tab(String title) {
+            this.title = title;
+        }
     }
 
-    private record Toggle(String name, BooleanSupplier get, Consumer<Boolean> set, Supplier<Screen> settings) {
-        Toggle(String name, BooleanSupplier get, Consumer<Boolean> set) { this(name, get, set, null); }
+    private record Toggle(String name, java.util.function.BooleanSupplier get,
+                          java.util.function.Consumer<Boolean> set,
+                          java.util.function.Supplier<Screen> settings) {
+        Toggle(String name, java.util.function.BooleanSupplier get,
+               java.util.function.Consumer<Boolean> set) {
+            this(name, get, set, null);
+        }
     }
 
-    private static final Map<Tab, List<Toggle>> MODULES = new EnumMap<>(Tab.class);
+    private static final java.util.Map<Tab, java.util.List<Toggle>> MODULES = new java.util.EnumMap<>(Tab.class);
     static {
-        MODULES.put(Tab.COMBAT, List.of(
+        MODULES.put(Tab.COMBAT, java.util.List.of(
                 new Toggle("Trigger Bot", TriggerBotModule::isEnabled, TriggerBotModule::setEnabled, TriggerBotSettingsScreen::new),
                 new Toggle("Auto Totem", AutoTotemModule::isEnabled, AutoTotemModule::setEnabled, AutoTotemSettingsScreen::new)
         ));
-        MODULES.put(Tab.PLAYER, List.of(
+        MODULES.put(Tab.PLAYER, java.util.List.of(
                 new Toggle("Sprint", SprintModule::isEnabled, SprintModule::setEnabled),
                 new Toggle("InvMove", InvMoveModule::isEnabled, InvMoveModule::setEnabled)
         ));
-        MODULES.put(Tab.VISUALS, List.of(
+        MODULES.put(Tab.VISUALS, java.util.List.of(
                 new Toggle("Target HUD", TargetHudModule::isEnabled, TargetHudModule::setEnabled, TargetHudSettingsScreen::new),
                 new Toggle("Bunnies", BunnyModule::isEnabled, BunnyModule::setEnabled, BunnySettingsScreen::new)
         ));
     }
 
     private static Tab selected = Tab.PLAYER;
+
     private int panelX;
     private int panelY;
     private int panelW;
     private int tabW;
     private int tabY;
 
-    public SprintMenuScreen() { super(Text.literal("Bunny DLC")); }
+    public SprintMenuScreen() {
+        super(Text.literal("Bunny DLC"));
+    }
 
     @Override
     protected void init() {
@@ -79,7 +82,6 @@ public final class SprintMenuScreen extends Screen {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        renderBackground(context, mouseX, mouseY, delta);
         super.render(context, mouseX, mouseY, delta);
         drawPanel(context, mouseX, mouseY);
     }
@@ -87,6 +89,7 @@ public final class SprintMenuScreen extends Screen {
     private void drawPanel(DrawContext context, int mouseX, int mouseY) {
         int x2 = panelX + panelW;
         int y2 = panelY + PANEL_H;
+
         context.fill(panelX - 7, panelY - 7, x2 + 7, y2 + 7, 0x60353D49);
         context.fill(panelX - 3, panelY - 3, x2 + 3, y2 + 3, PINK);
         context.fill(panelX, panelY, x2, y2, BG);
@@ -96,8 +99,10 @@ public final class SprintMenuScreen extends Screen {
         drawBunnyMark(context, panelX + 22, panelY + 17);
         context.drawText(textRenderer, Text.literal("BUNNY DLC").formatted(Formatting.BOLD), panelX + 58, panelY + 14, WHITE, true);
         context.drawText(textRenderer, Text.literal("CUSTOM CLIENT MENU  •  v1.21.11"), panelX + 58, panelY + 32, GRAY, false);
+
         Text online = Text.literal("● ONLINE");
-        context.drawText(textRenderer, online, x2 - 18 - textRenderer.getWidth(online), panelY + 22, MINT, true);
+        int onlineX = x2 - 18 - textRenderer.getWidth(online);
+        context.drawText(textRenderer, online, onlineX, panelY + 22, MINT, true);
 
         for (int i = 0; i < Tab.values().length; i++) {
             Tab tab = Tab.values()[i];
@@ -107,7 +112,7 @@ public final class SprintMenuScreen extends Screen {
                     selected == tab ? WHITE : GRAY);
         }
 
-        List<Toggle> modules = MODULES.get(selected);
+        java.util.List<Toggle> modules = MODULES.get(selected);
         int contentY = tabY + TAB_H + 18;
         int colGap = 12;
         int colW = (panelW - PAD * 2 - colGap) / 2;
@@ -117,10 +122,6 @@ public final class SprintMenuScreen extends Screen {
             int bx = panelX + PAD + col * (colW + colGap);
             int by = contentY + row * (ROW_H + ROW_GAP);
             drawModuleCard(context, modules.get(i), bx, by, colW, ROW_H, mouseX, mouseY);
-        }
-        if (modules.isEmpty()) {
-            context.drawCenteredTextWithShadow(textRenderer, Text.literal("НЕТ АКТИВНЫХ МОДУЛЕЙ"), width / 2,
-                    contentY + 30, GRAY);
         }
 
         int footerY = y2 - 29;
@@ -132,16 +133,18 @@ public final class SprintMenuScreen extends Screen {
     }
 
     private void drawModuleCard(DrawContext context, Toggle module, int x, int y, int w, int h, int mouseX, int mouseY) {
+        boolean active = module.get().getAsBoolean();
         boolean hovered = inside(mouseX, mouseY, x, y, w, h);
         context.fill(x, y, x + w, y + h, hovered ? 0xFF303A43 : 0xFF252C34);
-        context.fill(x, y, x + 3, y + h, module.get().getAsBoolean() ? MINT : PINK);
+        context.fill(x, y, x + 3, y + h, active ? MINT : PINK);
         context.drawText(textRenderer, Text.literal(module.name()).formatted(Formatting.BOLD), x + 12, y + 6, WHITE, true);
         context.drawText(textRenderer, Text.literal(module.settings() == null ? "TOGGLE" : "TOGGLE  •  ПКМ SETTINGS"), x + 12, y + 20, GRAY, false);
+
         int pillW = 40;
         int px = x + w - pillW - 8;
-        context.fill(px, y + 7, px + pillW, y + h - 7, module.get().getAsBoolean() ? 0xFF2C6948 : 0xFF45434A);
-        context.drawCenteredTextWithShadow(textRenderer, Text.literal(module.get().getAsBoolean() ? "ON" : "OFF"),
-                px + pillW / 2, y + 12, module.get().getAsBoolean() ? MINT : PINK);
+        context.fill(px, y + 7, px + pillW, y + h - 7, active ? 0xFF2C6948 : 0xFF45434A);
+        context.drawCenteredTextWithShadow(textRenderer, Text.literal(active ? "ON" : "OFF"),
+                px + pillW / 2, y + 12, active ? MINT : PINK);
     }
 
     private void drawCard(DrawContext context, int x, int y, int w, int h, boolean active, int mx, int my) {
@@ -163,24 +166,11 @@ public final class SprintMenuScreen extends Screen {
         return mx >= x && mx <= x + w && my >= y && my <= y + h;
     }
 
-    private double[] cursorPosition() {
-        if (client == null) return new double[]{-1.0, -1.0};
-        try (MemoryStack stack = MemoryStack.stackPush()) {
-            DoubleBuffer x = stack.mallocDouble(1);
-            DoubleBuffer y = stack.mallocDouble(1);
-            GLFW.glfwGetCursorPos(client.getWindow().getHandle(), x, y);
-            double scale = client.getWindow().getScaleFactor();
-            return new double[]{x.get(0) / scale, y.get(0) / scale};
-        }
-    }
-
     @Override
-    public boolean mouseClicked(Click click, boolean doubled) {
-        double[] cursor = cursorPosition();
-        double mouseX = cursor[0];
-        double mouseY = cursor[1];
-        int button = click.button();
-        if (button != GLFW.GLFW_MOUSE_BUTTON_LEFT && button != GLFW.GLFW_MOUSE_BUTTON_RIGHT) return false;
+    public boolean mouseClicked(double mouseX, double mouseY, int button, Click click) {
+        if (button != GLFW.GLFW_MOUSE_BUTTON_LEFT && button != GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
+            return false;
+        }
 
         for (int i = 0; i < Tab.values().length; i++) {
             int tx = panelX + PAD + i * (tabW + TAB_GAP);
@@ -197,7 +187,7 @@ public final class SprintMenuScreen extends Screen {
             return true;
         }
 
-        List<Toggle> modules = MODULES.get(selected);
+        java.util.List<Toggle> modules = MODULES.get(selected);
         int contentY = tabY + TAB_H + 18;
         int colGap = 12;
         int colW = (panelW - PAD * 2 - colGap) / 2;
@@ -206,18 +196,28 @@ public final class SprintMenuScreen extends Screen {
             int row = i / 2;
             int bx = panelX + PAD + col * (colW + colGap);
             int by = contentY + row * (ROW_H + ROW_GAP);
-            if (!inside(mouseX, mouseY, bx, by, colW, ROW_H)) continue;
+            if (!inside(mouseX, mouseY, bx, by, colW, ROW_H)) {
+                continue;
+            }
+
             Toggle module = modules.get(i);
             if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT && module.settings() != null) {
-                client.setScreen(module.settings().get());
-            } else if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
-                module.set().accept(!module.get().getAsBoolean());
+                if (client != null) {
+                    client.setScreen(module.settings().get());
+                }
+                return true;
             }
-            return true;
+            if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+                module.set().accept(!module.get().getAsBoolean());
+                return true;
+            }
         }
+
         return true;
     }
 
     @Override
-    public boolean shouldPause() { return false; }
+    public boolean shouldPause() {
+        return false;
+    }
 }
