@@ -211,4 +211,55 @@ public final class BunnyModule {
         int startY = MathHelper.floor(refY) + 2;
         BlockPos.Mutable pos = new BlockPos.Mutable();
 
-        for (int y = startY;
+        for (int y = startY;y >= startY - 6; y--) {
+            pos.set(bx, y, bz);
+            VoxelShape shape = world.getBlockState(pos).getCollisionShape(world, pos);
+            if (shape.isEmpty()) continue;
+
+            double top = y + shape.getMax(Direction.Axis.Y);
+            pos.set(bx, y + 1, bz);
+            boolean freeAbove = world.getBlockState(pos).getCollisionShape(world, pos).isEmpty()
+                    && world.getFluidState(pos).isEmpty();
+            if (freeAbove) return top;
+        }
+        return null;
+    }
+
+    private static void applyColor(RabbitEntity rabbit) {
+        if (VARIANTS.isEmpty()) return;
+        rabbit.setVariant(VARIANTS.get(colorIndex % VARIANTS.size()));
+    }
+
+    private static void remove(ClientWorld world, Bunny b) {
+        world.removeEntity(b.entity.getId(), Entity.RemovalReason.DISCARDED);
+    }
+
+    private static void clearAll(ClientWorld world) {
+        for (Bunny b : bunnies) {
+            remove(world, b);
+        }
+        bunnies.clear();
+    }
+
+    public static void load() {
+        try (InputStream in = Files.newInputStream(FILE)) {
+            Properties props = new Properties();
+            props.load(in);
+            enabled = Boolean.parseBoolean(props.getProperty("enabled", "false"));
+            count = MathHelper.clamp(Integer.parseInt(props.getProperty("count", "5")), 1, MAX_COUNT);
+            colorIndex = Math.max(0, Integer.parseInt(props.getProperty("color", "0")));
+        } catch (IOException | NumberFormatException ignored) {
+        }
+    }
+
+    private static void save() {
+        try (OutputStream out = Files.newOutputStream(FILE)) {
+            Properties props = new Properties();
+            props.setProperty("enabled", Boolean.toString(enabled));
+            props.setProperty("count", Integer.toString(count));
+            props.setProperty("color", Integer.toString(colorIndex));
+            props.store(out, "Bunnies");
+        } catch (IOException ignored) {
+        }
+    }
+}
