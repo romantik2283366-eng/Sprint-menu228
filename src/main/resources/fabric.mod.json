@@ -10,6 +10,7 @@
   "entrypoints": {
     "client": ["com.sprintmenu.SprintMenuClient"]
   },
+  "mixins": ["sprintmenu.mixins.json"],
   "depends": {
     "fabricloader": ">=0.18.1",
     "minecraft": "~1.21.11",

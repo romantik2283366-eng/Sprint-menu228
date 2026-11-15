@@ -1,5 +1,6 @@
 package com.sprintmenu;
 
+import com.sprintmenu.mixin.RabbitEntityAccessor;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
@@ -211,7 +212,7 @@ public final class BunnyModule {
         int startY = MathHelper.floor(refY) + 2;
         BlockPos.Mutable pos = new BlockPos.Mutable();
 
-        for (int y = startY;y >= startY - 6; y--) {
+        for (int y = startY; y >= startY - 6; y--) {
             pos.set(bx, y, bz);
             VoxelShape shape = world.getBlockState(pos).getCollisionShape(world, pos);
             if (shape.isEmpty()) continue;
@@ -227,7 +228,7 @@ public final class BunnyModule {
 
     private static void applyColor(RabbitEntity rabbit) {
         if (VARIANTS.isEmpty()) return;
-        rabbit.setVariant(VARIANTS.get(colorIndex % VARIANTS.size()));
+        ((RabbitEntityAccessor) rabbit).sprintmenu$setVariant(VARIANTS.get(colorIndex % VARIANTS.size()));
     }
 
     private static void remove(ClientWorld world, Bunny b) {
