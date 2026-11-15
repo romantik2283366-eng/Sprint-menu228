@@ -28,10 +28,12 @@ public class SprintMenuScreen extends Screen {
 
     private static final int WHITE = 0xFFF2F2F5;
     private static final int LIGHT_GRAY = 0xFFC9C9D0;
-    private static final int PANEL_BG = 0xEE2A2A2F;
-    private static final int PANEL_BORDER = 0xFF55555C;
-    private static final int HEADER_BG = 0xFF36363C;
+    private static final int PANEL_BG = 0xF51C2029;
+    private static final int PANEL_BORDER = 0xFF5C7667;
+    private static final int HEADER_BG = 0xFF29343A;
     private static final int GRAY = 0xFFA0A0A8;
+    private static final int MINT = 0xFF79E58B;
+    private static final int PINK = 0xFFFFD6E4;
 
     private enum Tab {
         COMBAT("Combat"), PLAYER("Player"), VISUALS("Visuals");
@@ -124,14 +126,14 @@ public class SprintMenuScreen extends Screen {
     }
 
     private Text tabLabel(Tab tab) {
-        return tab == selected ? Text.literal(tab.title).formatted(Formatting.WHITE, Formatting.BOLD)
+        return tab == selected ? Text.literal("✦ " + tab.title).formatted(Formatting.WHITE, Formatting.BOLD)
                 : Text.literal(tab.title).formatted(Formatting.GRAY);
     }
 
     private Text label(Toggle t) {
         Text state = t.get().getAsBoolean() ? Text.literal("ON").formatted(Formatting.GREEN)
                 : Text.literal("OFF").formatted(Formatting.RED);
-        return Text.literal(t.name() + ": ").append(state);
+        return Text.literal("  " + t.name() + "   •   ").append(state);
     }
 
     @Override
@@ -139,20 +141,41 @@ public class SprintMenuScreen extends Screen {
         super.renderBackground(context, mouseX, mouseY, delta);
         int x1 = panelX, y1 = panelY, x2 = panelX + panelW, y2 = panelY + PANEL_H;
         int cx = width / 2;
-        drawEar(context, cx - 38, y1);
-        drawEar(context, cx + 26, y1);
-        context.fill(x1 - 1, y1 - 1, x2 + 1, y2 + 1, PANEL_BORDER);
+        context.fill(x1 - 4, y1 - 4, x2 + 4, y2 + 4, 0x60353D49);
+        context.fill(x1 - 2, y1 - 2, x2 + 2, y2 + 2, PINK);
         context.fill(x1, y1, x2, y2, PANEL_BG);
         context.fill(x1, y1, x2, y1 + HEADER_H, HEADER_BG);
-        context.fill(x1, y1 + HEADER_H, x2, y1 + HEADER_H + 2, WHITE);
+        context.fill(x1, y1 + HEADER_H, x2, y1 + HEADER_H + 2, MINT);
+
+        drawEar(context, cx - 36, y1);
+        drawEar(context, cx + 24, y1);
+        drawFace(context, cx, y1 + 8);
+
+        context.fill(panelX + PAD - 2, tabY - 2, panelX + panelW - PAD + 2, tabY + TAB_H + 3, 0x554F6370);
         int ux = panelX + PAD + selected.ordinal() * (tabW + TAB_GAP);
-        context.fill(ux, tabY + TAB_H + 2, ux + tabW, tabY + TAB_H + 4, WHITE);
+        context.fill(ux, tabY + TAB_H + 1, ux + tabW, tabY + TAB_H + 4, PINK);
+
+        int startY = tabY + TAB_H + 16;
+        List<Toggle> list = MODULES.get(selected);
+        for (int i = 0; i < list.size(); i++) {
+            int x = panelX + PAD + (i % 2) * ((panelW - PAD * 2 + GAP) / 2);
+            int y = startY + (i / 2) * (BTN_H + GAP);
+            context.fill(x - 2, y - 2, x + (panelW - PAD * 2 - GAP) / 2 + 2, y + BTN_H + 2,
+                    list.get(i).get().getAsBoolean() ? 0x354FAF73 : 0x303C4652);
+            context.fill(x - 2, y - 2, x, y + BTN_H + 2, list.get(i).get().getAsBoolean() ? MINT : PINK);
+        }
         context.fill(x1 + PAD, y2 - 26, x2 - PAD, y2 - 25, PANEL_BORDER);
     }
 
     private void drawEar(DrawContext context, int x, int panelTop) {
-        context.fill(x, panelTop - 24, x + 12, panelTop + 2, WHITE);
-        context.fill(x + 3, panelTop - 20, x + 9, panelTop + 2, LIGHT_GRAY);
+        context.fill(x, panelTop - 22, x + 10, panelTop + 1, PINK);
+        context.fill(x + 3, panelTop - 19, x + 7, panelTop, WHITE);
+    }
+
+    private void drawFace(DrawContext context, int cx, int y) {
+        context.fill(cx - 2, y + 7, cx + 2, y + 10, PINK);
+        context.fill(cx - 8, y + 5, cx - 5, y + 8, WHITE);
+        context.fill(cx + 5, y + 5, cx + 8, y + 8, WHITE);
     }
 
     @Override
@@ -162,11 +185,11 @@ public class SprintMenuScreen extends Screen {
         if (down && !rightWasDown) handleRightClick(mouseX, mouseY);
         rightWasDown = down;
         int cx = width / 2;
-        context.drawCenteredTextWithShadow(textRenderer, Text.literal("BUNNY DLC").formatted(Formatting.BOLD), cx, panelY + 13, WHITE);
+        context.drawCenteredTextWithShadow(textRenderer, Text.literal("BUNNY CLUB").formatted(Formatting.BOLD), cx, panelY + 13, WHITE);
         if (MODULES.get(selected).isEmpty()) {
             context.drawCenteredTextWithShadow(textRenderer, Text.literal("Пока нет функций"), cx, tabY + TAB_H + 40, GRAY);
         }
-        context.drawCenteredTextWithShadow(textRenderer, Text.literal("Right Shift - меню   |   ПКМ - настройки"), cx, panelY + PANEL_H - 17, GRAY);
+        context.drawCenteredTextWithShadow(textRenderer, Text.literal("✿  Right Shift — меню     •     ПКМ — настройки  ✿"), cx, panelY + PANEL_H - 17, PINK);
     }
 
     @Override

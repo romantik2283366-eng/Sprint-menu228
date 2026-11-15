@@ -5,6 +5,9 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.passive.AnimalEntity;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.hit.HitResult;
@@ -19,7 +22,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Properties;
 
-/** Bunny-styled target HUD with saved placement and chat-screen drag editing. */
+/** Bunny-styled target HUD with saved placement, category filters and chat-screen drag editing. */
 public final class TargetHudModule {
     private static final Path FILE = FabricLoader.getInstance().getConfigDir().resolve("sprintmenu-targethud.properties");
     private static final int HEIGHT = 44;
@@ -28,6 +31,9 @@ public final class TargetHudModule {
     private static int hudX = -1;
     private static int hudY = -1;
     private static int hudWidth = 180;
+    private static boolean playersEnabled = true;
+    private static boolean mobsEnabled = true;
+    private static boolean animalsEnabled;
     private static boolean dragging;
     private static int dragOffsetX;
     private static int dragOffsetY;
@@ -40,6 +46,13 @@ public final class TargetHudModule {
     public static boolean isEditMode() { return editMode; }
     public static void setEditMode(boolean value) { editMode = value; dragging = false; save(); }
     public static int getWidth() { return hudWidth; }
+    public static boolean arePlayersEnabled() { return playersEnabled; }
+    public static boolean areMobsEnabled() { return mobsEnabled; }
+    public static boolean areAnimalsEnabled() { return animalsEnabled; }
+
+    public static void setPlayersEnabled(boolean value) { playersEnabled = value; save(); }
+    public static void setMobsEnabled(boolean value) { mobsEnabled = value; save(); }
+    public static void setAnimalsEnabled(boolean value) { animalsEnabled = value; save(); }
 
     public static void setWidth(int value) {
         hudWidth = Math.max(150, Math.min(250, value));
@@ -60,6 +73,9 @@ public final class TargetHudModule {
             hudX = Integer.parseInt(props.getProperty("x", "-1"));
             hudY = Integer.parseInt(props.getProperty("y", "-1"));
             hudWidth = Math.max(150, Math.min(250, Integer.parseInt(props.getProperty("width", "180"))));
+            playersEnabled = Boolean.parseBoolean(props.getProperty("players", "true"));
+            mobsEnabled = Boolean.parseBoolean(props.getProperty("mobs", "true"));
+            animalsEnabled = Boolean.parseBoolean(props.getProperty("animals", "false"));
         } catch (IOException | NumberFormatException ignored) {
         }
     }
@@ -88,7 +104,8 @@ public final class TargetHudModule {
         int x = hudX;
         int y = hudY;
         int w = hudWidth;
-        context.fill(x, y, x + w, y + HEIGHT, 0xD91D2028);
+        context.fill(x - 1, y - 1, x + w + 1, y + HEIGHT + 1, 0xD9F4C7D8);
+        context.fill(x, y, x + w, y + HEIGHT, 0xEF1D2028);
         context.fill(x, y, x + w, y + 3, 0xFF79E58B);
         context.fill(x + 7, y + 8, x + 17, y + 18, 0xFFFFD6E4);
         context.fill(x + 9, y + 5, x + 12, y + 13, 0xFFF2F2F5);
@@ -102,8 +119,7 @@ public final class TargetHudModule {
             health = Math.max(0.0F, living.getHealth());
             maxHealth = Math.max(1.0F, living.getMaxHealth());
         }
-        int textX = x + 24;
-        context.drawText(client.textRenderer, Text.literal(trim(name, w - 34)), textX, y + 8, 0xFFFFFFFF, true);
+        context.drawText(client.textRenderer, Text.literal(trim(name, w - 34)), x + 24, y + 8, 0xFFFFFFFF, true);
 
         if (target instanceof LivingEntity) {
             int barX = x + 24;
@@ -111,16 +127,15 @@ public final class TargetHudModule {
             int barW = w - 32;
             float ratio = Math.max(0.0F, Math.min(1.0F, health / maxHealth));
             context.fill(barX, barY, barX + barW, barY + 7, 0xFF45454D);
-            context.fill(barX, barY, barX + Math.round(barW * ratio), barY + 7, ratio > 0.5F ? 0xFF79E58B : 0xFFFF8795);
+            context.fill(barX, barY, barX + Math.round(barW * ratio), barY + 7,
+                    ratio > 0.5F ? 0xFF79E58B : 0xFFFF8795);
             context.drawText(client.textRenderer,
                     Text.literal((int) Math.ceil(health) + " / " + (int) Math.ceil(maxHealth) + " HP"),
                     x + 24, y + 19, 0xFFE5E7EB, true);
         } else {
-            context.drawText(client.textRenderer, Text.literal("Наведись на цель"), textX, y + 23, 0xFFE5E7EB, true);
+            context.drawText(client.textRenderer, Text.literal("Наведись на цель"), x + 24, y + 23, 0xFFE5E7EB, true);
         }
-        if (editingChat) {
-            context.fill(x, y + HEIGHT - 2, x + w, y + HEIGHT, 0xFFFFD6E4);
-        }
+        if (editingChat) context.fill(x, y + HEIGHT - 2, x + w, y + HEIGHT, 0xFFFFD6E4);
     }
 
     private static void updateDrag(MinecraftClient client, int screenW, int screenH) {
@@ -156,13 +171,13 @@ public final class TargetHudModule {
 
     private static Entity getTarget(MinecraftClient client) {
         HitResult hit = client.crosshairTarget;
-        if (hit instanceof EntityHitResult entityHitResult) {
-            Entity entity = entityHitResult.getEntity();
-            if (entity != null && entity != client.player && entity instanceof LivingEntity && entity.isAlive()) {
-                return entity;
-            }
-        }
-        return null;
+        if (!(hit instanceof EntityHitResult entityHitResult)) return null;
+        Entity entity = entityHitResult.getEntity();
+        if (!(entity instanceof LivingEntity) || entity == client.player || !entity.isAlive()) return null;
+        if (entity instanceof PlayerEntity) return playersEnabled ? entity : null;
+        if (entity instanceof AnimalEntity) return animalsEnabled ? entity : null;
+        if (entity instanceof HostileEntity) return mobsEnabled ? entity : null;
+        return mobsEnabled ? entity : null;
     }
 
     private static String trim(String value, int maxWidth) {
@@ -179,6 +194,9 @@ public final class TargetHudModule {
                 props.setProperty("x", Integer.toString(hudX));
                 props.setProperty("y", Integer.toString(hudY));
                 props.setProperty("width", Integer.toString(hudWidth));
+                props.setProperty("players", Boolean.toString(playersEnabled));
+                props.setProperty("mobs", Boolean.toString(mobsEnabled));
+                props.setProperty("animals", Boolean.toString(animalsEnabled));
                 props.store(out, "Bunny Target HUD");
             }
         } catch (IOException ignored) {
