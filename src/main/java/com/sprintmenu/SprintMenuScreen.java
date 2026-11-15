@@ -6,6 +6,9 @@ import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import org.lwjgl.glfw.GLFW;
+import org.lwjgl.system.MemoryStack;
+
+import java.nio.DoubleBuffer;
 
 public final class SprintMenuScreen extends Screen {
     private static final int PANEL_H = 286;
@@ -22,15 +25,9 @@ public final class SprintMenuScreen extends Screen {
     private static final int BG = 0xF51C2029;
 
     private enum Tab {
-        COMBAT("COMBAT"),
-        PLAYER("PLAYER"),
-        VISUALS("VISUALS");
-
+        COMBAT("COMBAT"), PLAYER("PLAYER"), VISUALS("VISUALS");
         final String title;
-
-        Tab(String title) {
-            this.title = title;
-        }
+        Tab(String title) { this.title = title; }
     }
 
     private record Toggle(String name, java.util.function.BooleanSupplier get,
@@ -59,16 +56,13 @@ public final class SprintMenuScreen extends Screen {
     }
 
     private static Tab selected = Tab.PLAYER;
-
     private int panelX;
     private int panelY;
     private int panelW;
     private int tabW;
     private int tabY;
 
-    public SprintMenuScreen() {
-        super(Text.literal("Bunny DLC"));
-    }
+    public SprintMenuScreen() { super(Text.literal("Bunny DLC")); }
 
     @Override
     protected void init() {
@@ -89,7 +83,6 @@ public final class SprintMenuScreen extends Screen {
     private void drawPanel(DrawContext context, int mouseX, int mouseY) {
         int x2 = panelX + panelW;
         int y2 = panelY + PANEL_H;
-
         context.fill(panelX - 7, panelY - 7, x2 + 7, y2 + 7, 0x60353D49);
         context.fill(panelX - 3, panelY - 3, x2 + 3, y2 + 3, PINK);
         context.fill(panelX, panelY, x2, y2, BG);
@@ -99,10 +92,8 @@ public final class SprintMenuScreen extends Screen {
         drawBunnyMark(context, panelX + 22, panelY + 17);
         context.drawText(textRenderer, Text.literal("BUNNY DLC").formatted(Formatting.BOLD), panelX + 58, panelY + 14, WHITE, true);
         context.drawText(textRenderer, Text.literal("CUSTOM CLIENT MENU  •  v1.21.11"), panelX + 58, panelY + 32, GRAY, false);
-
         Text online = Text.literal("● ONLINE");
-        int onlineX = x2 - 18 - textRenderer.getWidth(online);
-        context.drawText(textRenderer, online, onlineX, panelY + 22, MINT, true);
+        context.drawText(textRenderer, online, x2 - 18 - textRenderer.getWidth(online), panelY + 22, MINT, true);
 
         for (int i = 0; i < Tab.values().length; i++) {
             Tab tab = Tab.values()[i];
@@ -139,7 +130,6 @@ public final class SprintMenuScreen extends Screen {
         context.fill(x, y, x + 3, y + h, active ? MINT : PINK);
         context.drawText(textRenderer, Text.literal(module.name()).formatted(Formatting.BOLD), x + 12, y + 6, WHITE, true);
         context.drawText(textRenderer, Text.literal(module.settings() == null ? "TOGGLE" : "TOGGLE  •  ПКМ SETTINGS"), x + 12, y + 20, GRAY, false);
-
         int pillW = 40;
         int px = x + w - pillW - 8;
         context.fill(px, y + 7, px + pillW, y + h - 7, active ? 0xFF2C6948 : 0xFF45434A);
@@ -166,11 +156,26 @@ public final class SprintMenuScreen extends Screen {
         return mx >= x && mx <= x + w && my >= y && my <= y + h;
     }
 
+    private double[] cursorPosition() {
+        if (client == null) return new double[]{-1.0, -1.0};
+        try (MemoryStack stack = MemoryStack.stackPush()) {
+            DoubleBuffer x = stack.mallocDouble(1);
+            DoubleBuffer y = stack.mallocDouble(1);
+            GLFW.glfwGetCursorPos(client.getWindow().getHandle(), x, y);
+            double scale = client.getWindow().getScaleFactor();
+            return new double[]{x.get(0) / scale, y.get(0) / scale};
+        }
+    }
+
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button, Click click) {
-        if (button != GLFW.GLFW_MOUSE_BUTTON_LEFT && button != GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
+    public boolean mouseClicked(Click click, boolean doubled) {
+        if (click.button() != GLFW.GLFW_MOUSE_BUTTON_LEFT && click.button() != GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
             return false;
         }
+        double[] cursor = cursorPosition();
+        double mouseX = cursor[0];
+        double mouseY = cursor[1];
+        int button = click.button();
 
         for (int i = 0; i < Tab.values().length; i++) {
             int tx = panelX + PAD + i * (tabW + TAB_GAP);
@@ -196,15 +201,11 @@ public final class SprintMenuScreen extends Screen {
             int row = i / 2;
             int bx = panelX + PAD + col * (colW + colGap);
             int by = contentY + row * (ROW_H + ROW_GAP);
-            if (!inside(mouseX, mouseY, bx, by, colW, ROW_H)) {
-                continue;
-            }
+            if (!inside(mouseX, mouseY, bx, by, colW, ROW_H)) continue;
 
             Toggle module = modules.get(i);
             if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT && module.settings() != null) {
-                if (client != null) {
-                    client.setScreen(module.settings().get());
-                }
+                if (client != null) client.setScreen(module.settings().get());
                 return true;
             }
             if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
@@ -212,12 +213,9 @@ public final class SprintMenuScreen extends Screen {
                 return true;
             }
         }
-
         return true;
     }
 
     @Override
-    public boolean shouldPause() {
-        return false;
-    }
+    public boolean shouldPause() { return false; }
 }
