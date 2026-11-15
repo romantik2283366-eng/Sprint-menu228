@@ -22,13 +22,10 @@ public class SprintMenuClient implements ClientModInitializer {
         InvMoveModule.load();
         BunnyModule.load();
         TargetHudModule.load();
+        AutoTotemModule.load();
 
         openMenuKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-                "key.sprintmenu.open",
-                InputUtil.Type.KEYSYM,
-                GLFW.GLFW_KEY_RIGHT_SHIFT,
-                CATEGORY
-        ));
+                "key.sprintmenu.open", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_RIGHT_SHIFT, CATEGORY));
 
         HudRenderCallback.EVENT.register((drawContext, tickDelta) ->
                 TargetHudModule.render(drawContext, MinecraftClient.getInstance()));
@@ -41,6 +38,7 @@ public class SprintMenuClient implements ClientModInitializer {
             InvMoveModule.tick(client);
             BunnyModule.tick(client);
             TriggerBotModule.tick(client);
+            AutoTotemModule.tick(client);
         });
     }
 }
