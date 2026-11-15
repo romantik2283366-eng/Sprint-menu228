@@ -21,7 +21,7 @@ public class SprintMenuClient implements ClientModInitializer {
         SprintModule.load();
         InvMoveModule.load();
         BunnyModule.load();
-        TargetHudModule.setEnabled(true);
+        TargetHudModule.load();
 
         openMenuKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.sprintmenu.open",
@@ -30,19 +30,17 @@ public class SprintMenuClient implements ClientModInitializer {
                 CATEGORY
         ));
 
-        HudRenderCallback.EVENT.register((drawContext, tickDelta) -> {
-            TargetHudModule.render(drawContext, MinecraftClient.getInstance());
-        });
+        HudRenderCallback.EVENT.register((drawContext, tickDelta) ->
+                TargetHudModule.render(drawContext, MinecraftClient.getInstance()));
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (openMenuKey.wasPressed()) {
-                if (client.currentScreen == null) {
-                    client.setScreen(new SprintMenuScreen());
-                }
+                if (client.currentScreen == null) client.setScreen(new SprintMenuScreen());
             }
             SprintModule.tick(client);
             InvMoveModule.tick(client);
             BunnyModule.tick(client);
+            TriggerBotModule.tick(client);
         });
     }
 }
