@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "sprintmenu",
+  "version": "${version}",
+  "name": "Sprint Menu",
+  "description": "Client-side menu (Right Shift) with an auto Sprint function. Works on any server.",
+  "authors": ["You"],
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["com.sprintmenu.SprintMenuClient"]
+  },
+  "depends": {
+    "fabricloader": ">=0.18.1",
+    "minecraft": "~1.21.11",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}
