@@ -17,6 +17,8 @@ public class SprintMenuClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         SprintModule.load();
+        InvMoveModule.load();
+        BunnyModule.load();
 
         openMenuKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.sprintmenu.open",
@@ -32,6 +34,8 @@ public class SprintMenuClient implements ClientModInitializer {
                 }
             }
             SprintModule.tick(client);
+            InvMoveModule.tick(client);
+            BunnyModule.tick(client);
         });
     }
 }
