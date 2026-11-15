@@ -22,7 +22,8 @@ public final class AutoTotemSettingsScreen extends Screen {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        renderBackground(context, mouseX, mouseY, delta);
+        // Screen background is rendered by Minecraft before this method. Calling
+        // renderBackground here again requests a second blur in the same frame.
         super.render(context, mouseX, mouseY, delta);
         int x = width / 2 - PANEL_W / 2;
         int y = height / 2 - PANEL_H / 2;
