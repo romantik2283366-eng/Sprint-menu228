@@ -1,12 +1,14 @@
 package com.sprintmenu;
 
+import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import org.lwjgl.glfw.GLFW;
+import org.lwjgl.system.MemoryStack;
 
+import java.nio.DoubleBuffer;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
@@ -62,7 +64,6 @@ public final class SprintMenuScreen extends Screen {
     private int panelW;
     private int tabW;
     private int tabY;
-    private boolean rightWasDown;
 
     public SprintMenuScreen() { super(Text.literal("Bunny DLC")); }
 
@@ -74,7 +75,6 @@ public final class SprintMenuScreen extends Screen {
         int inner = panelW - PAD * 2;
         tabW = (inner - TAB_GAP * 2) / 3;
         tabY = panelY + HEADER_H + 8;
-        rightWasDown = false;
     }
 
     @Override
@@ -96,7 +96,8 @@ public final class SprintMenuScreen extends Screen {
         drawBunnyMark(context, panelX + 22, panelY + 17);
         context.drawText(textRenderer, Text.literal("BUNNY DLC").formatted(Formatting.BOLD), panelX + 58, panelY + 14, WHITE, true);
         context.drawText(textRenderer, Text.literal("CUSTOM CLIENT MENU  •  v1.21.11"), panelX + 58, panelY + 32, GRAY, false);
-        context.drawRightAlignedText(textRenderer, Text.literal("● ONLINE"), x2 - 18, panelY + 22, MINT, true);
+        Text online = Text.literal("● ONLINE");
+        context.drawText(textRenderer, online, x2 - 18 - textRenderer.getWidth(online), panelY + 22, MINT, true);
 
         for (int i = 0; i < Tab.values().length; i++) {
             Tab tab = Tab.values()[i];
@@ -162,9 +163,25 @@ public final class SprintMenuScreen extends Screen {
         return mx >= x && mx <= x + w && my >= y && my <= y + h;
     }
 
+    private double[] cursorPosition() {
+        if (client == null) return new double[]{-1.0, -1.0};
+        try (MemoryStack stack = MemoryStack.stackPush()) {
+            DoubleBuffer x = stack.mallocDouble(1);
+            DoubleBuffer y = stack.mallocDouble(1);
+            GLFW.glfwGetCursorPos(client.getWindow().getHandle(), x, y);
+            double scale = client.getWindow().getScaleFactor();
+            return new double[]{x.get(0) / scale, y.get(0) / scale};
+        }
+    }
+
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button != 0 && button != 1) return super.mouseClicked(mouseX, mouseY, button);
+    public boolean mouseClicked(Click click, boolean doubled) {
+        double[] cursor = cursorPosition();
+        double mouseX = cursor[0];
+        double mouseY = cursor[1];
+        int button = click.button();
+        if (button != GLFW.GLFW_MOUSE_BUTTON_LEFT && button != GLFW.GLFW_MOUSE_BUTTON_RIGHT) return false;
+
         for (int i = 0; i < Tab.values().length; i++) {
             int tx = panelX + PAD + i * (tabW + TAB_GAP);
             if (inside(mouseX, mouseY, tx, tabY, tabW, TAB_H)) {
@@ -175,7 +192,7 @@ public final class SprintMenuScreen extends Screen {
 
         int footerY = panelY + PANEL_H - 29;
         int closeX = panelX + panelW - PAD - 86;
-        if (button == 0 && inside(mouseX, mouseY, closeX, footerY - 7, 86, 22)) {
+        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && inside(mouseX, mouseY, closeX, footerY - 7, 86, 22)) {
             close();
             return true;
         }
@@ -191,28 +208,14 @@ public final class SprintMenuScreen extends Screen {
             int by = contentY + row * (ROW_H + ROW_GAP);
             if (!inside(mouseX, mouseY, bx, by, colW, ROW_H)) continue;
             Toggle module = modules.get(i);
-            if (button == 1 && module.settings() != null) {
+            if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT && module.settings() != null) {
                 client.setScreen(module.settings().get());
-            } else if (button == 0) {
+            } else if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
                 module.set().accept(!module.get().getAsBoolean());
             }
             return true;
         }
         return true;
-    }
-
-    @Override
-    public boolean mouseReleased(double mouseX, double mouseY, int button) {
-        return true;
-    }
-
-    @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
-            close();
-            return true;
-        }
-        return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @Override

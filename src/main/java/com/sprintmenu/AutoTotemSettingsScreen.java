@@ -1,9 +1,14 @@
 package com.sprintmenu;
 
+import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
+import org.lwjgl.glfw.GLFW;
+import org.lwjgl.system.MemoryStack;
+
+import java.nio.DoubleBuffer;
 
 public final class AutoTotemSettingsScreen extends Screen {
     private static final int PANEL_W = 320;
@@ -42,9 +47,23 @@ public final class AutoTotemSettingsScreen extends Screen {
         context.drawCenteredTextWithShadow(textRenderer, Text.literal(label).formatted(Formatting.BOLD), x + w / 2, y + (h - 8) / 2, WHITE);
     }
 
+    private double[] cursorPosition() {
+        if (client == null) return new double[]{-1.0, -1.0};
+        try (MemoryStack stack = MemoryStack.stackPush()) {
+            DoubleBuffer x = stack.mallocDouble(1);
+            DoubleBuffer y = stack.mallocDouble(1);
+            GLFW.glfwGetCursorPos(client.getWindow().getHandle(), x, y);
+            double scale = client.getWindow().getScaleFactor();
+            return new double[]{x.get(0) / scale, y.get(0) / scale};
+        }
+    }
+
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button != 0) return super.mouseClicked(mouseX, mouseY, button);
+    public boolean mouseClicked(Click click, boolean doubled) {
+        if (click.button() != GLFW.GLFW_MOUSE_BUTTON_LEFT) return false;
+        double[] cursor = cursorPosition();
+        double mouseX = cursor[0];
+        double mouseY = cursor[1];
         int x = width / 2 - PANEL_W / 2;
         int y = height / 2 - PANEL_H / 2;
         if (inside(mouseX, mouseY, x + 24, y + 82, 82, 28)) {
