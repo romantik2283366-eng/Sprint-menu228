@@ -54,16 +54,14 @@ public final class BunnyModule {
         final RabbitEntity entity;
         double x, z, groundY;
         float yaw;
-        float scale;
         int hop, age, turnTimer;
 
-        Bunny(RabbitEntity entity, double x, double groundY, double z, float yaw, float scale) {
+        Bunny(RabbitEntity entity, double x, double groundY, double z, float yaw) {
             this.entity = entity;
             this.x = x;
             this.groundY = groundY;
             this.z = z;
             this.yaw = yaw;
-            this.scale = scale;
             this.turnTimer = 20 + RNG.nextInt(60);
             this.hop = RNG.nextInt(10);
         }
@@ -177,8 +175,6 @@ public final class BunnyModule {
         rabbit.setId(nextId--);
         if (nextId < -2_000_000_000) nextId = -50000;
 
-        float scale = 0.8F + RNG.nextFloat() * 0.7F;
-        rabbit.setScale(scale);
         applyColor(rabbit);
         rabbit.setPosition(x, gy, z);
         rabbit.setNoGravity(true);
@@ -186,7 +182,7 @@ public final class BunnyModule {
         rabbit.setSilent(true);
         world.addEntity(rabbit);
 
-        bunnies.add(new Bunny(rabbit, x, gy, z, RNG.nextFloat() * 360f, scale));
+        bunnies.add(new Bunny(rabbit, x, gy, z, RNG.nextFloat() * 360f));
     }
 
     private static void move(ClientWorld world, Bunny b) {
@@ -213,13 +209,11 @@ public final class BunnyModule {
             b.hop = 0;
             b.entity.handleStatus((byte) 1);
         }
-        double arc = Math.sin(Math.PI * b.hop / 10.0) * (0.25 + b.scale * 0.15);
 
-        b.entity.setPosition(b.x, b.groundY + arc, b.z);
+        b.entity.setPosition(b.x, b.groundY, b.z);
         b.entity.setYaw(b.yaw);
         b.entity.setHeadYaw(b.yaw);
         b.entity.setBodyYaw(b.yaw);
-        b.entity.setScale(b.scale);
     }
 
     private static Double groundY(ClientWorld world, double x, double refY, double z) {
