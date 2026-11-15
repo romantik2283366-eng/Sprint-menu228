@@ -8,7 +8,7 @@ import net.minecraft.util.Formatting;
 
 public class BunnySettingsScreen extends Screen {
     private static final int W = 260;
-    private static final int H = 190;
+    private static final int H = 220;
     private static final int PAD = 16;
     private static final int HEADER_H = 34;
     private static final int BTN_H = 22;
@@ -24,6 +24,7 @@ public class BunnySettingsScreen extends Screen {
     private int panelX, panelY;
     private ButtonWidget countButton;
     private ButtonWidget colorButton;
+    private ButtonWidget optimizeButton;
 
     public BunnySettingsScreen() {
         super(Text.literal("Bunnies"));
@@ -37,7 +38,6 @@ public class BunnySettingsScreen extends Screen {
         int inner = W - PAD * 2;
         int y = panelY + HEADER_H + 20;
 
-        // Количество: [-]  Количество: N  [+]
         addDrawableChild(ButtonWidget.builder(Text.literal("-"), button -> {
             BunnyModule.setCount(BunnyModule.getCount() - 1);
             refresh();
@@ -52,14 +52,18 @@ public class BunnySettingsScreen extends Screen {
             refresh();
         }).dimensions(panelX + PAD + inner - SIDE_W, y, SIDE_W, BTN_H).build());
 
-        // Цвет
         colorButton = ButtonWidget.builder(colorLabel(), button -> {
             BunnyModule.nextColor();
             refresh();
         }).dimensions(panelX + PAD, y + BTN_H + 8, inner, BTN_H).build();
         addDrawableChild(colorButton);
 
-        // Назад
+        optimizeButton = ButtonWidget.builder(optimizeLabel(), button -> {
+            BunnyModule.setOptimized(!BunnyModule.isOptimized());
+            refresh();
+        }).dimensions(panelX + PAD, y + BTN_H * 2 + 16, inner, BTN_H).build();
+        addDrawableChild(optimizeButton);
+
         addDrawableChild(ButtonWidget.builder(Text.literal("Назад"), button -> this.close())
                 .dimensions(panelX + PAD, panelY + H - 34, inner, BTN_H).build());
     }
@@ -72,9 +76,14 @@ public class BunnySettingsScreen extends Screen {
         return Text.literal("Цвет: " + BunnyModule.colorName());
     }
 
+    private Text optimizeLabel() {
+        return Text.literal("Оптимизация: " + (BunnyModule.isOptimized() ? "ON" : "OFF"));
+    }
+
     private void refresh() {
         countButton.setMessage(countLabel());
         colorButton.setMessage(colorLabel());
+        optimizeButton.setMessage(optimizeLabel());
     }
 
     @Override
@@ -105,8 +114,8 @@ public class BunnySettingsScreen extends Screen {
                 Text.literal("BUNNIES").formatted(Formatting.BOLD),
                 this.width / 2, panelY + 13, WHITE);
         context.drawCenteredTextWithShadow(this.textRenderer,
-                Text.literal("Настройки кроликов"),
-                this.width / 2, panelY + HEADER_H + 6, GRAY);
+                Text.literal("Красивые зайцы, плавная работа и оптимизация"),
+                this.width / 2, panelY + HEADER_H + 8, GRAY);
     }
 
     @Override

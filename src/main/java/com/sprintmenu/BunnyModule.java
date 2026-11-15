@@ -30,6 +30,7 @@ public final class BunnyModule {
     private static final double SPEED = 0.12;
     private static final int MAX_COUNT = 30;
     private static final Random RNG = new Random();
+    private static boolean optimized = true;
 
     private static final List<RabbitEntity.Variant> VARIANTS = new ArrayList<>();
 
@@ -53,14 +54,16 @@ public final class BunnyModule {
         final RabbitEntity entity;
         double x, z, groundY;
         float yaw;
+        float scale;
         int hop, age, turnTimer;
 
-        Bunny(RabbitEntity entity, double x, double groundY, double z, float yaw) {
+        Bunny(RabbitEntity entity, double x, double groundY, double z, float yaw, float scale) {
             this.entity = entity;
             this.x = x;
             this.groundY = groundY;
             this.z = z;
             this.yaw = yaw;
+            this.scale = scale;
             this.turnTimer = 20 + RNG.nextInt(60);
             this.hop = RNG.nextInt(10);
         }
@@ -79,6 +82,15 @@ public final class BunnyModule {
 
     public static int getCount() {
         return count;
+    }
+
+    public static boolean isOptimized() {
+        return optimized;
+    }
+
+    public static void setOptimized(boolean value) {
+        optimized = value;
+        save();
     }
 
     public static void setCount(int value) {
@@ -126,6 +138,10 @@ public final class BunnyModule {
             return;
         }
 
+        if (optimized && (player.age & 1) != 0) {
+            return;
+        }
+
         Iterator<Bunny> it = bunnies.iterator();
         while (it.hasNext()) {
             Bunny b = it.next();
@@ -158,10 +174,11 @@ public final class BunnyModule {
         if (gy == null) return;
 
         RabbitEntity rabbit = new RabbitEntity(EntityType.RABBIT, world);
-        // Отрицательный id, чтобы не пересечься с настоящими сущностями сервера
         rabbit.setId(nextId--);
         if (nextId < -2_000_000_000) nextId = -50000;
 
+        float scale = 0.8F + RNG.nextFloat() * 0.7F;
+        rabbit.setScale(scale);
         applyColor(rabbit);
         rabbit.setPosition(x, gy, z);
         rabbit.setNoGravity(true);
@@ -169,7 +186,7 @@ public final class BunnyModule {
         rabbit.setSilent(true);
         world.addEntity(rabbit);
 
-        bunnies.add(new Bunny(rabbit, x, gy, z, RNG.nextFloat() * 360f));
+        bunnies.add(new Bunny(rabbit, x, gy, z, RNG.nextFloat() * 360f, scale));
     }
 
     private static void move(ClientWorld world, Bunny b) {
@@ -184,7 +201,6 @@ public final class BunnyModule {
 
         Double gy = groundY(world, nx, b.groundY, nz);
         if (gy == null || gy - b.groundY > 1.1 || b.groundY - gy > 3.5) {
-            // Впереди обрыв, стена или вода - разворачиваемся
             b.yaw += 120 + RNG.nextInt(120);
             b.turnTimer = 30 + RNG.nextInt(60);
         } else {
@@ -195,17 +211,17 @@ public final class BunnyModule {
 
         if (++b.hop >= 10) {
             b.hop = 0;
-            b.entity.handleStatus((byte) 1); // анимация прыжка
+            b.entity.handleStatus((byte) 1);
         }
-        double arc = Math.sin(Math.PI * b.hop / 10.0) * 0.3;
+        double arc = Math.sin(Math.PI * b.hop / 10.0) * (0.25 + b.scale * 0.15);
 
         b.entity.setPosition(b.x, b.groundY + arc, b.z);
         b.entity.setYaw(b.yaw);
         b.entity.setHeadYaw(b.yaw);
         b.entity.setBodyYaw(b.yaw);
+        b.entity.setScale(b.scale);
     }
 
-    /** Высота верхней поверхности блока под точкой или null, если пола нет. */
     private static Double groundY(ClientWorld world, double x, double refY, double z) {
         int bx = MathHelper.floor(x);
         int bz = MathHelper.floor(z);
@@ -249,6 +265,7 @@ public final class BunnyModule {
             enabled = Boolean.parseBoolean(props.getProperty("enabled", "false"));
             count = MathHelper.clamp(Integer.parseInt(props.getProperty("count", "5")), 1, MAX_COUNT);
             colorIndex = Math.max(0, Integer.parseInt(props.getProperty("color", "0")));
+            optimized = Boolean.parseBoolean(props.getProperty("optimized", "true"));
         } catch (IOException | NumberFormatException ignored) {
         }
     }
@@ -259,6 +276,7 @@ public final class BunnyModule {
             props.setProperty("enabled", Boolean.toString(enabled));
             props.setProperty("count", Integer.toString(count));
             props.setProperty("color", Integer.toString(colorIndex));
+            props.setProperty("optimized", Boolean.toString(optimized));
             props.store(out, "Bunnies");
         } catch (IOException ignored) {
         }

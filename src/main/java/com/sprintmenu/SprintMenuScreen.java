@@ -1,5 +1,6 @@
 package com.sprintmenu;
 
+import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.tooltip.Tooltip;
@@ -45,14 +46,12 @@ public class SprintMenuScreen extends Screen {
         }
     }
 
-    // settings == null значит, что у функции нет настроек (ПКМ ничего не делает)
     private record Toggle(String name, BooleanSupplier get, Consumer<Boolean> set, Supplier<Screen> settings) {
         Toggle(String name, BooleanSupplier get, Consumer<Boolean> set) {
             this(name, get, set, null);
         }
     }
 
-    // Чтобы добавить функцию, допиши new Toggle(...) в нужную вкладку
     private static final Map<Tab, List<Toggle>> MODULES = new EnumMap<>(Tab.class);
 
     static {
@@ -62,6 +61,7 @@ public class SprintMenuScreen extends Screen {
                 new Toggle("InvMove", InvMoveModule::isEnabled, InvMoveModule::setEnabled)
         ));
         MODULES.put(Tab.VISUALS, List.of(
+                new Toggle("Target HUD", TargetHudModule::isEnabled, TargetHudModule::setEnabled),
                 new Toggle("Bunnies", BunnyModule::isEnabled, BunnyModule::setEnabled, BunnySettingsScreen::new)
         ));
     }
@@ -90,7 +90,6 @@ public class SprintMenuScreen extends Screen {
         toggleButtons.clear();
         rightWasDown = isRightDown();
 
-        // Вкладки
         for (int i = 0; i < tabs.length; i++) {
             Tab tab = tabs[i];
             int tx = panelX + PAD + i * (tabW + TAB_GAP);
@@ -101,7 +100,6 @@ public class SprintMenuScreen extends Screen {
             }).dimensions(tx, tabY, tabW, TAB_H).build());
         }
 
-        // Функции выбранной вкладки (2 колонки)
         int colW = (inner - GAP) / 2;
         int startY = tabY + TAB_H + 16;
         List<Toggle> list = MODULES.get(selected);
@@ -120,7 +118,6 @@ public class SprintMenuScreen extends Screen {
             toggleButtons.add(btn);
         }
 
-        // Закрыть
         addDrawableChild(ButtonWidget.builder(Text.literal("Закрыть"), button -> this.close())
                 .dimensions(panelX + PAD, panelY + PANEL_H - 54, inner, BTN_H).build());
     }
@@ -162,23 +159,18 @@ public class SprintMenuScreen extends Screen {
         int x1 = panelX, y1 = panelY, x2 = panelX + panelW, y2 = panelY + PANEL_H;
         int cx = this.width / 2;
 
-        // Заячьи ушки
         drawEar(context, cx - 38, y1);
         drawEar(context, cx + 26, y1);
 
-        // Панель
         context.fill(x1 - 1, y1 - 1, x2 + 1, y2 + 1, PANEL_BORDER);
         context.fill(x1, y1, x2, y2, PANEL_BG);
 
-        // Шапка
         context.fill(x1, y1, x2, y1 + HEADER_H, HEADER_BG);
         context.fill(x1, y1 + HEADER_H, x2, y1 + HEADER_H + 2, WHITE);
 
-        // Подчёркивание активной вкладки
         int ux = panelX + PAD + selected.ordinal() * (tabW + TAB_GAP);
         context.fill(ux, tabY + TAB_H + 2, ux + tabW, tabY + TAB_H + 4, WHITE);
 
-        // Нижняя линия
         context.fill(x1 + PAD, y2 - 26, x2 - PAD, y2 - 25, PANEL_BORDER);
     }
 
@@ -191,7 +183,6 @@ public class SprintMenuScreen extends Screen {
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         super.render(context, mouseX, mouseY, delta);
 
-        // Правая кнопка мыши: открыть настройки функции (если они есть)
         boolean down = isRightDown();
         if (down && !rightWasDown) {
             handleRightClick(mouseX, mouseY);
@@ -219,4 +210,4 @@ public class SprintMenuScreen extends Screen {
     public boolean shouldPause() {
         return false;
     }
-                       }
+}
