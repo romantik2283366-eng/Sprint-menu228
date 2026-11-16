@@ -3,6 +3,7 @@ package com.sprintmenu;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.message.v1.ClientSendMessageEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
@@ -23,9 +24,13 @@ public class SprintMenuClient implements ClientModInitializer {
         BunnyModule.load();
         TargetHudModule.load();
         AutoTotemModule.load();
+        ModuleKeybinds.load();
 
         openMenuKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.sprintmenu.open", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_RIGHT_SHIFT, CATEGORY));
+
+        ClientSendMessageEvents.ALLOW_CHAT.register(message ->
+                !ModuleKeybinds.handleChatCommand(MinecraftClient.getInstance(), message));
 
         HudRenderCallback.EVENT.register((drawContext, tickDelta) ->
                 TargetHudModule.render(drawContext, MinecraftClient.getInstance()));
@@ -34,6 +39,7 @@ public class SprintMenuClient implements ClientModInitializer {
             while (openMenuKey.wasPressed()) {
                 if (client.currentScreen == null) client.setScreen(new SprintMenuScreen());
             }
+            ModuleKeybinds.tick(client);
             SprintModule.tick(client);
             InvMoveModule.tick(client);
             BunnyModule.tick(client);
