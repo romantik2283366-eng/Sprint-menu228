@@ -45,7 +45,8 @@ public final class SprintMenuScreen extends Screen {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        renderBackground(context, mouseX, mouseY, delta);
+        // Do not call renderBackground here: Minecraft 1.21.11 only permits one blur per frame,
+        // and Fabric screen rendering may already apply it.
         context.fill(0, 0, width, height, 0x99080A10);
 
         int right = x + w;
