@@ -3,9 +3,7 @@ package com.sprintmenu;
 import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.text.Style;
 import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.system.MemoryStack;
 
@@ -30,11 +28,11 @@ public final class SprintMenuScreen extends Screen {
     private int h;
 
     public SprintMenuScreen() {
-        super(ui("Bunny"));
+        super(Text.literal("Bunny"));
     }
 
     private static Text ui(String value) {
-        return Text.literal(value).setStyle(Style.EMPTY.withFont(Identifier.of("minecraft", "uniform")));
+        return Text.literal(value);
     }
 
     @Override
@@ -57,7 +55,6 @@ public final class SprintMenuScreen extends Screen {
         context.fill(x, y, right, y + 68, 0xFF191E2C);
         context.fill(x + 22, y + 67, right - 22, y + 68, LINE);
 
-        // Minimal bunny mark and title area.
         context.fill(x + 24, y + 20, x + 31, y + 43, ACCENT);
         context.fill(x + 36, y + 17, x + 43, y + 43, ACCENT);
         context.fill(x + 26, y + 36, x + 41, y + 49, 0xFF7567D9);
@@ -118,8 +115,7 @@ public final class SprintMenuScreen extends Screen {
 
     private void drawSmallButton(DrawContext context, int x, int y, int w, int h, String label, int mouseX, int mouseY) {
         drawCard(context, x, y, w, h, mouseX, mouseY);
-        Text text = ui(label);
-        context.drawCenteredTextWithShadow(textRenderer, text, x + w / 2, y + 12, WHITE.getStyle().getColor() == null ? 0xFFFFFFFF : 0xFFFFFFFF);
+        context.drawCenteredTextWithShadow(textRenderer, ui(label), x + w / 2, y + 12, 0xFFFFFFFF);
     }
 
     private void drawValue(DrawContext context, int x, int y, int w, int h, String value) {
