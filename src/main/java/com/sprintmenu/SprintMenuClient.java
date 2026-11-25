@@ -16,6 +16,7 @@ public final class SprintMenuClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         BunnyModule.load();
+        SprintModule.load();
 
         openMenuKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.sprintmenu.open", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_RIGHT_SHIFT, CATEGORY));
@@ -25,6 +26,7 @@ public final class SprintMenuClient implements ClientModInitializer {
                 if (client.currentScreen == null) client.setScreen(new SprintMenuScreen());
             }
             BunnyModule.tick(client);
+            SprintModule.tick(client);
         });
     }
 }
