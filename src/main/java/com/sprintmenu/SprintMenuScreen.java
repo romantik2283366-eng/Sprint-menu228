@@ -9,119 +9,189 @@ import org.lwjgl.system.MemoryStack;
 
 import java.nio.DoubleBuffer;
 
-/** A clean, compact control panel for the bunny module. */
+/** A compact category-based control panel for Bunny Club. */
 public final class SprintMenuScreen extends Screen {
-    private static final int PANEL_W = 420;
-    private static final int PANEL_H = 286;
-    private static final int BG = 0xF5111420;
-    private static final int SURFACE = 0xFF1D2231;
-    private static final int SURFACE_HOVER = 0xFF282F42;
-    private static final int LINE = 0xFF30384B;
-    private static final int WHITE = 0xFFF5F6FA;
-    private static final int MUTED = 0xFF9AA4B8;
-    private static final int ACCENT = 0xFF9B8CFF;
-    private static final int GREEN = 0xFF69D6AE;
+    private static final int PANEL_MAX_W = 620;
+    private static final int PANEL_MAX_H = 390;
+    private static final int BG = 0xF510121A;
+    private static final int SIDEBAR = 0xFF151821;
+    private static final int SURFACE = 0xFF1D2230;
+    private static final int HOVER = 0xFF272D3D;
+    private static final int LINE = 0xFF2C3241;
+    private static final int WHITE = 0xFFF4F5FA;
+    private static final int MUTED = 0xFF9299AA;
+    private static final int ACCENT = 0xFF9B82F5;
+    private static final int GREEN = 0xFF62D6A9;
 
-    private int x;
-    private int y;
-    private int w;
-    private int h;
+    private static final int TAB_BUNNY = 0;
+    private static final int TAB_VISUAL = 1;
+    private static final int TAB_COMBAT = 2;
+
+    private int panelX;
+    private int panelY;
+    private int panelW;
+    private int panelH;
+    private int sidebarW;
+    private int activeTab = TAB_BUNNY;
 
     public SprintMenuScreen() {
-        super(Text.literal("Bunny"));
-    }
-
-    private static Text ui(String value) {
-        return Text.literal(value);
+        super(Text.literal("Bunny Club"));
     }
 
     @Override
     protected void init() {
-        w = Math.min(PANEL_W, Math.max(300, width - 24));
-        h = Math.min(PANEL_H, Math.max(250, height - 20));
-        x = (width - w) / 2;
-        y = (height - h) / 2;
+        panelW = Math.min(PANEL_MAX_W, Math.max(320, width - 28));
+        panelH = Math.min(PANEL_MAX_H, Math.max(220, height - 24));
+        panelX = (width - panelW) / 2;
+        panelY = (height - panelH) / 2;
+        sidebarW = Math.min(138, Math.max(94, panelW / 4));
     }
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        // Do not call renderBackground here: Minecraft 1.21.11 only permits one blur per frame,
-        // and Fabric screen rendering may already apply it.
-        context.fill(0, 0, width, height, 0x99080A10);
+        // Avoid vanilla's background blur: it may already be applied by the screen renderer.
+        context.fill(0, 0, width, height, 0xA9080A10);
 
-        int right = x + w;
-        int bottom = y + h;
-        context.fill(x - 2, y - 2, right + 2, bottom + 2, 0x553F4770);
-        context.fill(x, y, right, bottom, BG);
-        context.fill(x, y, right, y + 68, 0xFF191E2C);
-        context.fill(x + 22, y + 67, right - 22, y + 68, LINE);
+        int right = panelX + panelW;
+        int bottom = panelY + panelH;
+        context.fill(panelX - 2, panelY - 2, right + 2, bottom + 2, 0x453A315A);
+        context.fill(panelX, panelY, right, bottom, BG);
+        context.fill(panelX, panelY, panelX + sidebarW, bottom, SIDEBAR);
+        context.fill(panelX + sidebarW, panelY + 18, panelX + sidebarW + 1, bottom - 18, LINE);
 
-        context.fill(x + 24, y + 20, x + 31, y + 43, ACCENT);
-        context.fill(x + 36, y + 17, x + 43, y + 43, ACCENT);
-        context.fill(x + 26, y + 36, x + 41, y + 49, 0xFF7567D9);
-        context.drawText(textRenderer, ui("BUNNY CLUB"), x + 55, y + 18, WHITE, false);
-        context.drawText(textRenderer, ui("Минималистичная панель зайцев"), x + 55, y + 36, MUTED, false);
-        context.drawText(textRenderer, ui("RIGHT SHIFT"), right - 94, y + 29, MUTED, false);
+        drawSidebar(context, mouseX, mouseY);
+        drawContent(context, mouseX, mouseY);
+    }
 
-        int pad = 24;
-        int cardX = x + pad;
-        int cardW = w - pad * 2;
-        int toggleY = y + 84;
+    private void drawSidebar(DrawContext context, int mouseX, int mouseY) {
+        int x = panelX + 16;
+        int top = panelY + 19;
+        context.fill(x, top + 1, x + 24, top + 25, ACCENT);
+        context.fill(x + 6, top - 4, x + 12, top + 12, 0xFFD8CCFF);
+        context.fill(x + 15, top - 4, x + 21, top + 12, 0xFFD8CCFF);
+        context.drawText(textRenderer, Text.literal("BUNNY"), x + 31, top + 2, WHITE, false);
+        context.drawText(textRenderer, Text.literal("CLUB"), x + 31, top + 13, MUTED, false);
+
+        int navY = panelY + 66;
+        drawNavItem(context, "Bunny", "01", TAB_BUNNY, navY, mouseX, mouseY);
+        drawNavItem(context, "Visual", "02", TAB_VISUAL, navY + 38, mouseX, mouseY);
+        drawNavItem(context, "Combat", "03", TAB_COMBAT, navY + 76, mouseX, mouseY);
+
+        int statusY = panelY + panelH - 34;
+        context.fill(x + 2, statusY + 3, x + 8, statusY + 9, GREEN);
+        context.drawText(textRenderer, Text.literal("CLIENT ACTIVE"), x + 15, statusY, MUTED, false);
+    }
+
+    private void drawNavItem(DrawContext context, String label, String number, int tab, int y, int mouseX, int mouseY) {
+        int x = panelX + 10;
+        int w = sidebarW - 20;
+        boolean selected = activeTab == tab;
+        boolean hovered = inside(mouseX, mouseY, x, y, w, 30);
+        if (selected) {
+            context.fill(x, y, x + w, y + 30, 0xFF29243C);
+            context.fill(x, y + 5, x + 2, y + 25, ACCENT);
+        } else if (hovered) {
+            context.fill(x, y, x + w, y + 30, HOVER);
+        }
+        context.drawText(textRenderer, Text.literal(label), x + 12, y + 10, selected ? WHITE : MUTED, false);
+        int numberWidth = textRenderer.getWidth(number);
+        context.drawText(textRenderer, Text.literal(number), x + w - numberWidth - 9, y + 10,
+                selected ? ACCENT : 0xFF626A7C, false);
+    }
+
+    private void drawContent(DrawContext context, int mouseX, int mouseY) {
+        int contentX = panelX + sidebarW + 25;
+        int contentW = panelW - sidebarW - 48;
+        int headerY = panelY + 22;
+
+        String title = switch (activeTab) {
+            case TAB_VISUAL -> "Visual";
+            case TAB_COMBAT -> "Combat";
+            default -> "Bunny";
+        };
+        String subtitle = switch (activeTab) {
+            case TAB_VISUAL -> "Appearance and presentation";
+            case TAB_COMBAT -> "Combat features";
+            default -> "Your little companions";
+        };
+        context.drawText(textRenderer, Text.literal(title), contentX, headerY, WHITE, false);
+        context.drawText(textRenderer, Text.literal(subtitle), contentX, headerY + 16, MUTED, false);
+        context.fill(contentX, headerY + 34, contentX + contentW, headerY + 35, LINE);
+
+        if (activeTab != TAB_BUNNY) {
+            drawEmptyState(context, contentX, headerY + 58, contentW);
+            return;
+        }
+        drawBunnySettings(context, contentX, contentW, headerY + 45, mouseX, mouseY);
+    }
+
+    private void drawBunnySettings(DrawContext context, int x, int w, int top, int mouseX, int mouseY) {
         boolean enabled = BunnyModule.isEnabled();
-        drawCard(context, cardX, toggleY, cardW, 54, mouseX, mouseY);
-        context.drawText(textRenderer, ui("Зайцы"), cardX + 14, toggleY + 12, WHITE, false);
-        context.drawText(textRenderer, ui(enabled ? "Питомцы бегают рядом с тобой" : "Модуль сейчас выключен"),
-                cardX + 14, toggleY + 31, MUTED, false);
-        drawSwitch(context, cardX + cardW - 55, toggleY + 18, enabled);
+        drawCard(context, x, top, w, 48, mouseX, mouseY);
+        context.fill(x + 12, top + 12, x + 14, top + 36, enabled ? ACCENT : 0xFF565D6C);
+        context.drawText(textRenderer, Text.literal("Bunnies"), x + 23, top + 10, WHITE, false);
+        context.drawText(textRenderer, Text.literal(enabled ? "Companions are active" : "Companions are paused"),
+                x + 23, top + 27, MUTED, false);
+        drawSwitch(context, x + w - 49, top + 14, enabled);
 
-        int rowY = toggleY + 66;
-        context.drawText(textRenderer, ui("Количество"), cardX + 2, rowY + 8, WHITE, false);
-        context.drawText(textRenderer, ui("От 1 до 30 зайцев"), cardX + 2, rowY + 25, MUTED, false);
-        drawSmallButton(context, cardX + cardW - 104, rowY, 32, 34, "−", mouseX, mouseY);
-        drawValue(context, cardX + cardW - 68, rowY, 40, 34, Integer.toString(BunnyModule.getCount()));
-        drawSmallButton(context, cardX + cardW - 24, rowY, 32, 34, "+", mouseX, mouseY);
+        int rowGap = 7;
+        int rowH = 38;
+        int countY = top + 48 + rowGap;
+        drawCard(context, x, countY, w, rowH, mouseX, mouseY);
+        context.drawText(textRenderer, Text.literal("Count"), x + 12, countY + 7, WHITE, false);
+        context.drawText(textRenderer, Text.literal("How many companions appear"), x + 12, countY + 22, MUTED, false);
+        int controlsX = x + w - 102;
+        drawStepButton(context, controlsX, countY + 5, "−", mouseX, mouseY);
+        context.fill(controlsX + 33, countY + 5, controlsX + 66, countY + 33, 0xFF292F3D);
+        context.drawCenteredTextWithShadow(textRenderer, Text.literal(Integer.toString(BunnyModule.getCount())),
+                controlsX + 49, countY + 14, 0xFFFFFFFF);
+        drawStepButton(context, controlsX + 69, countY + 5, "+", mouseX, mouseY);
 
-        int colorY = rowY + 48;
-        drawCard(context, cardX, colorY, cardW, 42, mouseX, mouseY);
-        context.drawText(textRenderer, ui("Окрас"), cardX + 14, colorY + 14, WHITE, false);
-        String color = BunnyModule.colorName() + "   ›";
-        int colorWidth = textRenderer.getWidth(ui(color));
-        context.drawText(textRenderer, ui(color), cardX + cardW - colorWidth - 14, colorY + 14, ACCENT, false);
+        int colorY = countY + rowH + rowGap;
+        drawCard(context, x, colorY, w, rowH, mouseX, mouseY);
+        context.drawText(textRenderer, Text.literal("Fur color"), x + 12, colorY + 7, WHITE, false);
+        context.drawText(textRenderer, Text.literal("Change companion appearance"), x + 12, colorY + 22, MUTED, false);
+        drawPill(context, x + w - 106, colorY + 7, 94, 24, BunnyModule.colorName(), ACCENT, mouseX, mouseY);
 
-        int optimizeY = colorY + 52;
-        drawCard(context, cardX, optimizeY, cardW, 42, mouseX, mouseY);
-        context.drawText(textRenderer, ui("Оптимизация"), cardX + 14, optimizeY + 14, WHITE, false);
-        String optimize = BunnyModule.isOptimized() ? "ВКЛ" : "ВЫКЛ";
-        int optimizeWidth = textRenderer.getWidth(ui(optimize));
-        context.drawText(textRenderer, ui(optimize), cardX + cardW - optimizeWidth - 14,
-                optimizeY + 14, BunnyModule.isOptimized() ? GREEN : MUTED, false);
+        int performanceY = colorY + rowH + rowGap;
+        drawCard(context, x, performanceY, w, rowH, mouseX, mouseY);
+        context.drawText(textRenderer, Text.literal("Performance"), x + 12, performanceY + 7, WHITE, false);
+        context.drawText(textRenderer, Text.literal("Reduce update work"), x + 12, performanceY + 22, MUTED, false);
+        boolean optimized = BunnyModule.isOptimized();
+        drawPill(context, x + w - 78, performanceY + 7, 66, 24, optimized ? "ON" : "OFF",
+                optimized ? GREEN : MUTED, mouseX, mouseY);
+    }
 
-        int footerY = bottom - 30;
-        context.fill(cardX, footerY - 8, cardX + cardW, footerY - 7, LINE);
-        context.drawText(textRenderer, ui("Кликни по строке, чтобы изменить настройку"), cardX, footerY + 2, MUTED, false);
-        Text close = ui("ESC  ·  ЗАКРЫТЬ");
-        context.drawText(textRenderer, close, right - pad - textRenderer.getWidth(close), footerY + 2, MUTED, false);
+    private void drawEmptyState(DrawContext context, int x, int y, int w) {
+        int boxY = Math.min(y + 17, panelY + panelH - 76);
+        int boxH = Math.max(46, panelY + panelH - 28 - boxY);
+        context.fill(x, boxY, x + w, boxY + boxH, SURFACE);
+        int markX = x + w / 2;
+        context.fill(markX - 1, boxY + 12, markX + 1, boxY + 26, ACCENT);
+        context.fill(markX - 7, boxY + 18, markX + 7, boxY + 20, ACCENT);
+        Text message = Text.literal("No features here");
+        context.drawCenteredTextWithShadow(textRenderer, message, markX, boxY + 33, 0xFFB6BDCC);
     }
 
     private void drawCard(DrawContext context, int x, int y, int w, int h, int mouseX, int mouseY) {
-        boolean hovered = mouseX >= x && mouseX <= x + w && mouseY >= y && mouseY <= y + h;
-        context.fill(x, y, x + w, y + h, hovered ? SURFACE_HOVER : SURFACE);
+        context.fill(x, y, x + w, y + h, inside(mouseX, mouseY, x, y, w, h) ? HOVER : SURFACE);
     }
 
-    private void drawSwitch(DrawContext context, int x, int y, boolean enabled) {
-        context.fill(x, y, x + 38, y + 20, enabled ? 0xFF544B91 : 0xFF3B4252);
-        int knobX = enabled ? x + 21 : x + 3;
-        context.fill(knobX, y + 3, knobX + 14, y + 17, enabled ? ACCENT : 0xFF9AA4B8);
+    private void drawSwitch(DrawContext context, int x, int y, boolean on) {
+        context.fill(x, y, x + 36, y + 20, on ? 0xFF514576 : 0xFF343A48);
+        int knobX = on ? x + 19 : x + 3;
+        context.fill(knobX, y + 3, knobX + 14, y + 17, on ? ACCENT : 0xFF9299AA);
     }
 
-    private void drawSmallButton(DrawContext context, int x, int y, int w, int h, String label, int mouseX, int mouseY) {
-        drawCard(context, x, y, w, h, mouseX, mouseY);
-        context.drawCenteredTextWithShadow(textRenderer, ui(label), x + w / 2, y + 12, 0xFFFFFFFF);
+    private void drawStepButton(DrawContext context, int x, int y, String label, int mouseX, int mouseY) {
+        drawCard(context, x, y, 28, 28, mouseX, mouseY);
+        context.drawCenteredTextWithShadow(textRenderer, Text.literal(label), x + 14, y + 9, 0xFFFFFFFF);
     }
 
-    private void drawValue(DrawContext context, int x, int y, int w, int h, String value) {
-        context.fill(x, y, x + w, y + h, 0xFF272D3D);
-        context.drawCenteredTextWithShadow(textRenderer, ui(value), x + w / 2, y + 12, 0xFFFFFFFF);
+    private void drawPill(DrawContext context, int x, int y, int w, int h, String value, int color, int mouseX, int mouseY) {
+        boolean hovered = inside(mouseX, mouseY, x, y, w, h);
+        context.fill(x, y, x + w, y + h, hovered ? 0xFF353249 : 0xFF292D3A);
+        context.drawCenteredTextWithShadow(textRenderer, Text.literal(value), x + w / 2, y + 8, color);
     }
 
     private double[] cursorPosition() {
@@ -135,8 +205,8 @@ public final class SprintMenuScreen extends Screen {
         }
     }
 
-    private boolean inside(double mx, double my, int bx, int by, int bw, int bh) {
-        return mx >= bx && mx <= bx + bw && my >= by && my <= by + bh;
+    private boolean inside(double mx, double my, int x, int y, int w, int h) {
+        return mx >= x && mx <= x + w && my >= y && my <= y + h;
     }
 
     @Override
@@ -145,34 +215,53 @@ public final class SprintMenuScreen extends Screen {
         double[] mouse = cursorPosition();
         double mx = mouse[0];
         double my = mouse[1];
-        int cardX = x + 24;
-        int cardW = w - 48;
-        int toggleY = y + 84;
-        int rowY = toggleY + 66;
-        int colorY = rowY + 48;
-        int optimizeY = colorY + 52;
+        int navX = panelX + 10;
+        int navW = sidebarW - 20;
+        int navY = panelY + 66;
 
-        if (inside(mx, my, cardX, toggleY, cardW, 54)) {
-            BunnyModule.setEnabled(!BunnyModule.isEnabled());
+        if (inside(mx, my, navX, navY, navW, 30)) {
+            activeTab = TAB_BUNNY;
             return true;
         }
-        if (inside(mx, my, cardX + cardW - 104, rowY, 32, 34)) {
-            BunnyModule.setCount(BunnyModule.getCount() - 1);
+        if (inside(mx, my, navX, navY + 38, navW, 30)) {
+            activeTab = TAB_VISUAL;
             return true;
         }
-        if (inside(mx, my, cardX + cardW - 24, rowY, 32, 34)) {
-            BunnyModule.setCount(BunnyModule.getCount() + 1);
+        if (inside(mx, my, navX, navY + 76, navW, 30)) {
+            activeTab = TAB_COMBAT;
             return true;
         }
-        if (inside(mx, my, cardX, colorY, cardW, 42)) {
-            BunnyModule.nextColor();
-            return true;
+        if (activeTab == TAB_BUNNY) {
+            int contentX = panelX + sidebarW + 25;
+            int contentW = panelW - sidebarW - 48;
+            int top = panelY + 22 + 45;
+            int countY = top + 55;
+            int controlsX = contentX + contentW - 102;
+            int colorY = countY + 45;
+            int performanceY = colorY + 45;
+
+            if (inside(mx, my, contentX, top, contentW, 48)) {
+                BunnyModule.setEnabled(!BunnyModule.isEnabled());
+                return true;
+            }
+            if (inside(mx, my, controlsX, countY + 5, 28, 28)) {
+                BunnyModule.setCount(BunnyModule.getCount() - 1);
+                return true;
+            }
+            if (inside(mx, my, controlsX + 69, countY + 5, 28, 28)) {
+                BunnyModule.setCount(BunnyModule.getCount() + 1);
+                return true;
+            }
+            if (inside(mx, my, contentX, colorY, contentW, 38)) {
+                BunnyModule.nextColor();
+                return true;
+            }
+            if (inside(mx, my, contentX, performanceY, contentW, 38)) {
+                BunnyModule.setOptimized(!BunnyModule.isOptimized());
+                return true;
+            }
         }
-        if (inside(mx, my, cardX, optimizeY, cardW, 42)) {
-            BunnyModule.setOptimized(!BunnyModule.isOptimized());
-            return true;
-        }
-        return super.mouseClicked(click, doubled);
+        return true;
     }
 
     @Override
